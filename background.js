@@ -51,14 +51,11 @@ function openQueryTab(query) {
 // Fetch ranked results from your backend API
 async function fetchRankedResults(query) {
   try {
-    // TODO: Replace with your actual backend API endpoint
-    const API_ENDPOINT = 'https://your-api-endpoint.com/api/search';
+    // API endpoint - change this if deploying to cloud
+    const API_ENDPOINT = 'http://localhost:5000/api/search';
     
-    // For now, return mock data for frontend development
-    // Remove this and uncomment the fetch below when backend is ready
-    return getMockResults(query);
-
-    /*
+    console.log('Fetching results from API:', API_ENDPOINT);
+    
     const response = await fetch(API_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -68,15 +65,19 @@ async function fetchRankedResults(query) {
     });
 
     if (!response.ok) {
-      throw new Error('Backend API request failed');
+      throw new Error(`API request failed: ${response.status}`);
     }
 
     const data = await response.json();
-    return data.results;
-    */
+    console.log('API response:', data);
+    
+    // Return the data in the expected format
+    return data;
+    
   } catch (error) {
-    console.error('Error fetching results:', error);
-    // Return mock data as fallback
+    console.error('Error fetching results from API:', error);
+    console.log('Falling back to mock data');
+    // Return mock data as fallback if API is not available
     return getMockResults(query);
   }
 }
