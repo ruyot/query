@@ -279,7 +279,7 @@ class RankingDataPreparation:
             print("Error: Failed to connect to Elasticsearch")
             return False
         
-        print("✓ Elasticsearch connection successful")
+        print("- Elasticsearch connection successful")
         print()
         
         # Step 1: Fetch all documents
@@ -348,10 +348,10 @@ def main():
     success = pipeline.run()
     
     if success:
-        print("\n✓ All tasks completed successfully!")
+        print("\n- All tasks completed successfully!")
         sys.exit(0)
     else:
-        print("\n✗ Pipeline failed. Please check the errors above.")
+        print("\n- Pipeline failed. Please check the errors above.")
         sys.exit(1)
 
 

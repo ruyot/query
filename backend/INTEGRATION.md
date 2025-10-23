@@ -202,7 +202,7 @@ def score_and_rank_results(results: List[Dict[str, Any]]) -> List[Dict[str, Any]
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `SERPAPI_KEY` | SerpAPI API key | ✅ Yes |
+| `SERPAPI_KEY` | SerpAPI API key | Yes |
 | `ES_HOST` | Elasticsearch host | For local ES |
 | `ES_PORT` | Elasticsearch port | For local ES |
 | `ES_CLOUD_ID` | Elastic Cloud ID | For cloud ES |

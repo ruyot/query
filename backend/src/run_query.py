@@ -86,7 +86,7 @@ def process_query(query: str, num_pages: int = 5) -> bool:
                 # Still add the document without scores
                 scored_docs.append(doc)
         
-        print(f"  ✓ Computed scores for {len(scored_docs)} documents")
+        print(f"  - Computed scores for {len(scored_docs)} documents")
         
         # Step 5: Index documents to Elasticsearch (with scores)
         print("Step 5: Indexing documents to Elasticsearch...")

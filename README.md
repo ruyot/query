@@ -1,4 +1,4 @@
-# Query 🔍
+# Query
 
 **Smarter Search Results for Google**
 
@@ -6,7 +6,7 @@ A Chrome extension that transforms your Google search experience by organizing r
 
 Built for the **Elastic x Google Cloud Hackathon**.
 
-## 🎯 Problem
+## Problem
 
 Current Google search results are cluttered with:
 - Ads and sponsored content at the top
@@ -14,21 +14,21 @@ Current Google search results are cluttered with:
 - No clear categorization of content types
 - Valuable academic papers and journals buried pages deep
 
-## 💡 Solution
+## Solution
 
 Query automatically:
 1. **Detects** when you search on Google
 2. **Analyzes** the search results using AI
 3. **Categorizes** results into logical groups:
-   - 📚 Academic & Research (journals, papers, studies)
-   - 🎥 Video Content (tutorials, lectures)
-   - 📖 Online Courses (structured learning)
-   - 🌐 Websites & Blogs (articles, guides)
-   - 📕 Books & Textbooks
+   - Academic & Research (journals, papers, studies)
+   - Video Content (tutorials, lectures)
+   - Online Courses (structured learning)
+   - Websites & Blogs (articles, guides)
+   - Books & Textbooks
 4. **Ranks** by credibility and relevance
 5. **Displays** in a beautiful, organized interface
 
-## ✨ Features
+## Features
 
 - **Automatic Detection**: Works seamlessly with your Google searches
 - **Smart Categorization**: Results organized by content type
@@ -38,7 +38,7 @@ Query automatically:
 - **Fast Loading**: Results appear in 2-3 seconds
 - **No Setup Required**: Works right out of the box
 
-## 🚀 Installation
+## Installation
 
 ### For Development
 
@@ -65,7 +65,7 @@ Query automatically:
 - You should see the Query icon in your Chrome toolbar
 - Click it to see the popup with extension info
 
-## 📖 How to Use
+## How to Use
 
 ### Method 1: Automatic (Recommended)
 
@@ -86,7 +86,7 @@ Query automatically:
 2. Click "Try a Search on Google"
 3. It will demonstrate with an example search
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 Query/
@@ -106,7 +106,7 @@ Query/
     └── icon128.png
 ```
 
-## 🔧 Backend Integration
+## Backend Integration
 
 Currently, the extension uses **mock data** for demonstration purposes. To connect your own backend:
 
@@ -147,7 +147,7 @@ Currently, the extension uses **mock data** for demonstration purposes. To conne
    }
    ```
 
-## 🎨 Customization
+## Customization
 
 ### Colors
 Edit `styles/results.css` to change the color scheme:
@@ -166,7 +166,7 @@ Add or modify categories in:
 - `scripts/results.js` (JavaScript logic)
 - `styles/results.css` (styling)
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Frontend**: Vanilla HTML/CSS/JavaScript
 - **Extension API**: Chrome Manifest V3
@@ -176,7 +176,7 @@ Add or modify categories in:
   - Web scraping (for fetching results)
   - ML model (for credibility scoring)
 
-## 🔮 Future Enhancements
+## Future Enhancements
 
 - [ ] Integrate with real backend API
 - [ ] Add filters (date range, content type toggles)
@@ -188,7 +188,7 @@ Add or modify categories in:
 - [ ] Browser sync across devices
 - [ ] Firefox and Edge support
 
-## 📝 Notes
+## Notes
 
 ### Google Search Scraping
 - Be mindful of Google's Terms of Service
@@ -205,7 +205,7 @@ Add or modify categories in:
 - No data is stored by the extension itself
 - Consider adding privacy policy for production use
 
-## 🤝 Contributing
+## Contributing
 
 This project was created for a hackathon. Ideas for improvement:
 
@@ -215,17 +215,17 @@ This project was created for a hackathon. Ideas for improvement:
 4. **Features**: Add filters, bookmarks, summaries
 5. **Testing**: Write tests for extension components
 
-## 📄 License
+## License
 
 This project is open source and available for educational purposes.
 
-## 👥 Team
+## Team
 
 Created for the Elastic x Google Cloud Hackathon.
 
 ---
 
-**Happy Searching! 🚀**
+**Happy Searching!**
 
 If you encounter any issues, check the Chrome Developer Console (F12) for error messages.
 

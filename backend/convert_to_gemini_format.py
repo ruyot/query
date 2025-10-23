@@ -32,7 +32,7 @@ def convert_to_gemini_format(
         input_path = Path(input_file)
         
         if not input_path.exists():
-            print(f"❌ Error: No input file found")
+            print(f"- Error: No input file found")
             print("   Expected: output/vertex_ready.jsonl or output/ranking_training_data.jsonl")
             print("   Run: python prepare_ranking_data.py")
             return False
@@ -128,10 +128,10 @@ def convert_to_gemini_format(
     print("  Conversion Complete!")
     print("=" * 60)
     print()
-    print(f"✓ Converted: {converted_count} documents")
+    print(f"- Converted: {converted_count} documents")
     
     if skipped_count > 0:
-        print(f"⚠ Skipped: {skipped_count} documents (errors or missing fields)")
+        print(f"- Skipped: {skipped_count} documents (errors or missing fields)")
     
     print()
     print(f"Output file: {output_file}")
@@ -153,7 +153,7 @@ def convert_to_gemini_format(
     print()
     print("-" * 60)
     print()
-    print("✓ Ready to upload to Google Cloud Storage!")
+    print("- Ready to upload to Google Cloud Storage!")
     print()
     print("Next steps:")
     print("  1. Upload to GCS:")

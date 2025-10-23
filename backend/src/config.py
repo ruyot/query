@@ -60,19 +60,19 @@ def validate_cloud_config():
         client = ElasticsearchClient()
         
         if client.test_connection():
-            print("✓ Elasticsearch cloud connection successful")
+            print("- Elasticsearch cloud connection successful")
             
             # Test index creation
             if client.create_index_if_not_exists():
-                print("✓ Index creation/verification successful")
+                print("- Index creation/verification successful")
                 return True
             else:
-                print("✗ Index creation failed")
+                print("- Index creation failed")
                 return False
         else:
-            print("✗ Elasticsearch cloud connection failed")
+            print("- Elasticsearch cloud connection failed")
             return False
             
     except Exception as e:
-        print(f"✗ Cloud validation error: {e}")
+        print(f"- Cloud validation error: {e}")
         return False

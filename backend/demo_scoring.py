@@ -211,14 +211,14 @@ def demo_realistic_scenario():
     for new_rank, result in enumerate(enriched_results, 1):
         print(f"{result['rank']:<11} {new_rank:<11} {result['relevance_score']:<10.4f} {result['title'][:28]}")
     
-    print("\n💡 Notice how recent results move up despite lower original ranks!")
+    print("\n- Notice how recent results move up despite lower original ranks!")
 
 
 def main():
     """Run all demos."""
-    print("\n" + "🎯" * 35)
+    print("\n" + "=" * 70)
     print("  RELEVANCE SCORING MODULE DEMONSTRATION")
-    print("🎯" * 35)
+    print("=" * 70)
     
     demo_basic_scoring()
     demo_rank_comparison()
@@ -230,7 +230,7 @@ def main():
     print("\n" + "=" * 70)
     print("  Demo Complete!")
     print("=" * 70)
-    print("\n💡 Tips:")
+    print("\n- Tips:")
     print("  - Adjust weights to prioritize rank vs. recency")
     print("  - Use shorter decay periods for time-sensitive content")
     print("  - Use longer decay periods for evergreen content")

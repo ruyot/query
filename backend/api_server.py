@@ -9,6 +9,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from typing import Dict, List, Any
 import logging
+import requests
+import json
 
 # Add src directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -126,9 +128,80 @@ def search():
         logger.error(f"Error processing search: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
+def call_gcp_model(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Call GCP Vertex AI model endpoint to rank results
+    
+    Args:
+        results: List of result documents
+        
+    Returns:
+        Results with GCP model predictions, or None if call fails
+    """
+    gcp_endpoint = os.getenv('GCP_ENDPOINT')
+    
+    if not gcp_endpoint:
+        logger.warning("GCP_ENDPOINT not configured, skipping model call")
+        return None
+    
+    try:
+        # Prepare instances for the model
+        instances = []
+        for result in results:
+            instance = {
+                'title': result.get('title', ''),
+                'description': result.get('description', ''),
+                'url': result.get('url', ''),
+                'rank': result.get('rank', 0),
+                'timestamp': result.get('timestamp', ''),
+                'source': result.get('source', '')
+            }
+            instances.append(instance)
+        
+        # Call the GCP model endpoint
+        payload = {'instances': instances}
+        
+        logger.info(f"Calling GCP model endpoint: {gcp_endpoint}")
+        response = requests.post(
+            gcp_endpoint,
+            json=payload,
+            headers={'Content-Type': 'application/json'},
+            timeout=10
+        )
+        
+        if not response.ok:
+            logger.error(f"GCP model call failed: {response.status_code} - {response.text}")
+            return None
+        
+        response_data = response.json()
+        predictions = response_data.get('predictions', [])
+        
+        # Merge predictions with results
+        if len(predictions) == len(results):
+            for i, result in enumerate(results):
+                prediction = predictions[i]
+                # Assume model returns a score between 0-1
+                model_score = prediction if isinstance(prediction, (int, float)) else prediction.get('score', 0.5)
+                result['model_score'] = float(model_score)
+                result['credibility'] = int(model_score * 100)
+                result['model_used'] = 'gcp-vertex-ai'
+            
+            logger.info(f"Successfully scored {len(results)} results with GCP model")
+            return results
+        else:
+            logger.error(f"Prediction count mismatch: {len(predictions)} != {len(results)}")
+            return None
+            
+    except requests.exceptions.Timeout:
+        logger.error("GCP model call timed out")
+        return None
+    except Exception as e:
+        logger.error(f"Error calling GCP model: {str(e)}", exc_info=True)
+        return None
+
 def score_and_rank_results(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Score and rank results using the relevance scorer
+    Score and rank results using GCP model (if available) or fallback to relevance scorer
     
     Args:
         results: List of result documents
@@ -139,18 +212,30 @@ def score_and_rank_results(results: List[Dict[str, Any]]) -> List[Dict[str, Any]
     if not results:
         return []
     
-    # Enrich with scores
-    scored_results = []
+    # Add rank to results
     for i, result in enumerate(results):
-        # Add rank (position in original results)
         result['rank'] = i + 1
-        
-        # Calculate relevance score
+    
+    # Try GCP model first
+    gcp_results = call_gcp_model(results)
+    
+    if gcp_results:
+        # Sort by model score (highest first)
+        gcp_results.sort(key=lambda x: x.get('model_score', 0), reverse=True)
+        logger.info("Using GCP model rankings")
+        return gcp_results
+    
+    # Fallback to local scoring
+    logger.info("Falling back to local scoring system")
+    scored_results = []
+    for result in results:
+        # Calculate relevance score using local scorer
         enriched = scorer.enrich_document(result)
         
         # Convert relevance_score to credibility percentage (0-100)
         credibility = int(enriched.get('relevance_score', 0.5) * 100)
         enriched['credibility'] = credibility
+        enriched['model_used'] = 'local-scorer'
         
         scored_results.append(enriched)
     
@@ -213,10 +298,10 @@ if __name__ == '__main__':
     # Check Elasticsearch connection
     logger.info("Checking Elasticsearch connection...")
     if es_client.test_connection():
-        logger.info("✓ Elasticsearch connected")
+        logger.info("- Elasticsearch connected")
         es_client.create_index_if_not_exists()
     else:
-        logger.warning("⚠ Elasticsearch not available (results won't be stored)")
+        logger.warning("- Elasticsearch not available (results won't be stored)")
     
     # Start server
     logger.info("Starting Query API Server...")

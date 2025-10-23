@@ -150,7 +150,7 @@ def display_results(results):
     
     # Find best model
     best_model_name = min(results.keys(), key=lambda k: results[k]['test_rmse'])
-    print(f"\n✨ Best model: {best_model_name}")
+    print(f"\n- Best model: {best_model_name}")
 
 
 def demonstrate_predictions(model, X_test, y_test, df_test):
@@ -227,7 +227,7 @@ def main():
     print("  Training Complete!")
     print("=" * 70)
     
-    print("\n💡 Next Steps:")
+    print("\n- Next Steps:")
     print("  1. Add more features (query features, content analysis, etc.)")
     print("  2. Tune hyperparameters for better performance")
     print("  3. Try deep learning models (neural networks)")

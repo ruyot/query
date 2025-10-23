@@ -23,38 +23,38 @@ def main():
     
     # Test connection
     if not client.test_connection():
-        print("❌ Failed to connect to Elasticsearch")
+        print("- Failed to connect to Elasticsearch")
         print("   Check your .env configuration")
         return False
     
-    print(f"✓ Connected to Elasticsearch")
+    print(f"- Connected to Elasticsearch")
     print(f"  Index: {ELASTIC_INDEX}")
     print()
     
     # Check if index exists
     try:
         if not client.es.indices.exists(index=ELASTIC_INDEX):
-            print(f"❌ Index '{ELASTIC_INDEX}' does not exist")
+            print(f"- Index '{ELASTIC_INDEX}' does not exist")
             print("   Run: python main.py 'your query' --pages 5")
             return False
     except Exception as e:
-        print(f"❌ Error checking index: {e}")
+        print(f"- Error checking index: {e}")
         return False
     
     # Get document count
     try:
         count_result = client.es.count(index=ELASTIC_INDEX)
         total_docs = count_result['count']
-        print(f"📊 Total documents in index: {total_docs}")
+        print(f"- Total documents in index: {total_docs}")
         
         if total_docs == 0:
             print()
-            print("⚠️  No documents found in index")
+            print("- No documents found in index")
             print("   Run: python main.py 'your query' --pages 5")
             return False
         
     except Exception as e:
-        print(f"❌ Error counting documents: {e}")
+        print(f"- Error counting documents: {e}")
         return False
     
     # Get a sample document
@@ -76,7 +76,7 @@ def main():
             # Check for required fields
             required_fields = ['query', 'title', 'rank', 'timestamp']
             for field in required_fields:
-                status = "✓" if field in doc else "❌"
+                status = "+" if field in doc else "-"
                 value = doc.get(field, 'MISSING')
                 if isinstance(value, str) and len(value) > 40:
                     value = value[:37] + "..."
@@ -99,15 +99,15 @@ def main():
             
             for field in score_fields:
                 if field in doc:
-                    print(f"✓ {field}: {doc[field]}")
+                    print(f"+ {field}: {doc[field]}")
                 else:
-                    print(f"❌ {field}: NOT FOUND")
+                    print(f"- {field}: NOT FOUND")
             
             print()
             print("=" * 60)
             
             if has_scores:
-                print("✅ SUCCESS: Scores are present in documents!")
+                print("SUCCESS: Scores are present in documents!")
                 print()
                 print("Your Elasticsearch documents have all scoring fields.")
                 print("You can now use them for ML training or queries.")
@@ -116,7 +116,7 @@ def main():
                 print("  python prepare_ranking_data.py")
                 return True
             else:
-                print("⚠️  SCORES NOT FOUND in documents")
+                print("SCORES NOT FOUND in documents")
                 print()
                 print("To add scores to your documents:")
                 print()
@@ -128,7 +128,7 @@ def main():
                 return False
         
     except Exception as e:
-        print(f"❌ Error fetching sample document: {e}")
+        print(f"- Error fetching sample document: {e}")
         return False
 
 
