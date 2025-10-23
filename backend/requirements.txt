@@ -1,0 +1,11 @@
+# Core dependencies for the search pipeline
+requests==2.31.0
+python-dotenv==1.0.0
+elasticsearch==8.11.0
+
+# Development and testing (optional)
+pytest==7.4.3
+pytest-cov==4.1.0
+
+# Type hints support
+typing-extensions==4.8.0

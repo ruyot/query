@@ -1,0 +1,23 @@
+# Environment variables
+.env
+
+# Virtual environment
+venv/
+.env/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Debug/testing scripts
+debug_serpapi.py
+demo.py
+test_pipeline.py
+
+# ignore temp or output files
+test_*
+*.log
+
+# Output folder for JSONL files
+output/
+*.jsonl
