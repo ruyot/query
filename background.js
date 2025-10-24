@@ -52,7 +52,7 @@ function openQueryTab(query) {
 async function fetchRankedResults(query) {
   try {
     // API endpoint - change this if deploying to cloud
-    const API_ENDPOINT = 'http://localhost:5000/api/search';
+    const API_ENDPOINT = 'http://localhost:5001/api/search';
     
     console.log('Fetching results from API:', API_ENDPOINT);
     

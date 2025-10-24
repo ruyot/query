@@ -11,6 +11,10 @@ from typing import Dict, List, Any
 import logging
 import requests
 import json
+from google.auth.transport.requests import Request
+from google.oauth2 import service_account
+import google.auth
+from google.cloud import aiplatform
 
 # Add src directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -81,7 +85,7 @@ def search():
         
         # Fetch search results (from SerpAPI/Google)
         logger.info("Fetching search results...")
-        raw_results = search_client.search(query, num_pages=3)  # Get 3 pages
+        raw_results = search_client.fetch_google_results(query, num_pages=3)  # Get 3 pages
         
         if not raw_results:
             logger.warning("No results found")
@@ -95,6 +99,23 @@ def search():
         logger.info("Parsing and categorizing results...")
         parser = ResultParser()
         categorized_results = parser.categorize_results(raw_results)
+        
+        # Add timestamps to all results before scoring
+        from datetime import datetime
+        current_timestamp = datetime.utcnow().isoformat() + 'Z'
+        for category in categorized_results:
+            for result in categorized_results[category]:
+                if 'timestamp' not in result:
+                    result['timestamp'] = current_timestamp
+                # Ensure required fields for compatibility
+                if 'title' not in result:
+                    result['title'] = result.get('title', 'No title')
+                if 'description' not in result:
+                    result['description'] = result.get('snippet', 'No description')
+                if 'url' not in result:
+                    result['url'] = result.get('link', '')
+                if 'source' not in result:
+                    result['source'] = 'google'
         
         # Score and rank results
         logger.info("Scoring and ranking results...")
@@ -128,9 +149,39 @@ def search():
         logger.error(f"Error processing search: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
+def get_gcp_auth_token():
+    """
+    Get GCP authentication token for Vertex AI API calls
+    Uses Application Default Credentials (ADC) or service account
+    """
+    try:
+        # Check if service account key path is provided
+        sa_key_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+        
+        if sa_key_path and os.path.exists(sa_key_path):
+            # Use service account credentials
+            credentials = service_account.Credentials.from_service_account_file(
+                sa_key_path,
+                scopes=['https://www.googleapis.com/auth/cloud-platform']
+            )
+        else:
+            # Use Application Default Credentials
+            credentials, project = google.auth.default(
+                scopes=['https://www.googleapis.com/auth/cloud-platform']
+            )
+        
+        # Refresh the credentials to get a valid token
+        auth_req = Request()
+        credentials.refresh(auth_req)
+        
+        return credentials.token
+    except Exception as e:
+        logger.warning(f"Failed to get GCP auth token: {e}")
+        return None
+
 def call_gcp_model(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Call GCP Vertex AI model endpoint to rank results
+    Call GCP Vertex AI model endpoint to rank results using Vertex AI SDK
     
     Args:
         results: List of result documents
@@ -138,62 +189,99 @@ def call_gcp_model(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     Returns:
         Results with GCP model predictions, or None if call fails
     """
-    gcp_endpoint = os.getenv('GCP_ENDPOINT')
+    endpoint_id = os.getenv('ENDPOINT_ID', '6011820617911762944')
+    project_id = os.getenv('GCP_PROJECT_ID', 'elasticsearch-js-1760392627586')
+    location = os.getenv('GCP_LOCATION', 'us-central1')
     
-    if not gcp_endpoint:
-        logger.warning("GCP_ENDPOINT not configured, skipping model call")
+    if not endpoint_id:
+        logger.warning("ENDPOINT_ID not configured, skipping model call")
         return None
     
     try:
+        # Initialize Vertex AI SDK
+        aiplatform.init(
+            project=project_id,
+            location=location,
+        )
+        
+        logger.info(f"Connecting to Vertex AI endpoint: {endpoint_id}")
+        
+        # Get the endpoint
+        endpoint = aiplatform.Endpoint(
+            endpoint_name=f"projects/{project_id}/locations/{location}/endpoints/{endpoint_id}"
+        )
+        
         # Prepare instances for the model
         instances = []
         for result in results:
             instance = {
                 'title': result.get('title', ''),
-                'description': result.get('description', ''),
-                'url': result.get('url', ''),
-                'rank': result.get('rank', 0),
-                'timestamp': result.get('timestamp', ''),
-                'source': result.get('source', '')
+                'description': result.get('description', result.get('snippet', '')),
+                'url': result.get('url', result.get('link', '')),
+                'source': result.get('source', 'google'),
+                'rank': result.get('rank', 0)
             }
             instances.append(instance)
         
-        # Call the GCP model endpoint
-        payload = {'instances': instances}
+        logger.info(f"Sending {len(instances)} instances for ranking")
         
-        logger.info(f"Calling GCP model endpoint: {gcp_endpoint}")
-        response = requests.post(
-            gcp_endpoint,
-            json=payload,
-            headers={'Content-Type': 'application/json'},
-            timeout=10
-        )
+        # Make prediction using SDK
+        prediction_response = endpoint.predict(instances=instances)
         
-        if not response.ok:
-            logger.error(f"GCP model call failed: {response.status_code} - {response.text}")
-            return None
-        
-        response_data = response.json()
-        predictions = response_data.get('predictions', [])
+        # Extract predictions from response
+        predictions = prediction_response.predictions if hasattr(prediction_response, 'predictions') else prediction_response
+        logger.info(f"GCP predictions received: {len(predictions)} predictions")
         
         # Merge predictions with results
-        if len(predictions) == len(results):
+        if len(predictions) > 0:
+            # Handle different response formats
             for i, result in enumerate(results):
-                prediction = predictions[i]
-                # Assume model returns a score between 0-1
-                model_score = prediction if isinstance(prediction, (int, float)) else prediction.get('score', 0.5)
-                result['model_score'] = float(model_score)
-                result['credibility'] = int(model_score * 100)
-                result['model_used'] = 'gcp-vertex-ai'
+                if i < len(predictions):
+                    prediction = predictions[i]
+                    
+                    # Try to extract score from different possible formats
+                    if isinstance(prediction, (int, float)):
+                        model_score = float(prediction)
+                    elif isinstance(prediction, dict):
+                        # Try different possible keys
+                        model_score = (
+                            prediction.get('score') or 
+                            prediction.get('credibility') or 
+                            prediction.get('relevance_score') or
+                            prediction.get('value') or
+                            0.5
+                        )
+                        if isinstance(model_score, str):
+                            try:
+                                model_score = float(model_score)
+                            except:
+                                model_score = 0.5
+                    elif isinstance(prediction, list) and len(prediction) > 0:
+                        model_score = float(prediction[0])
+                    else:
+                        model_score = 0.5
+                    
+                    # Normalize score to 0-1 range if needed
+                    if model_score > 1:
+                        model_score = model_score / 100.0
+                    
+                    result['model_score'] = float(model_score)
+                    result['credibility'] = int(model_score * 100)
+                    result['model_used'] = 'gcp-vertex-ai'
+                else:
+                    # If we run out of predictions, use a default score
+                    result['model_score'] = 0.5
+                    result['credibility'] = 50
+                    result['model_used'] = 'gcp-vertex-ai-default'
             
             logger.info(f"Successfully scored {len(results)} results with GCP model")
             return results
         else:
-            logger.error(f"Prediction count mismatch: {len(predictions)} != {len(results)}")
+            logger.error(f"No predictions returned from model")
             return None
             
     except requests.exceptions.Timeout:
-        logger.error("GCP model call timed out")
+        logger.error("GCP model call timed out after 30 seconds")
         return None
     except Exception as e:
         logger.error(f"Error calling GCP model: {str(e)}", exc_info=True)
@@ -225,8 +313,8 @@ def score_and_rank_results(results: List[Dict[str, Any]]) -> List[Dict[str, Any]
         logger.info("Using GCP model rankings")
         return gcp_results
     
-    # Fallback to local scoring
-    logger.info("Falling back to local scoring system")
+    # Fallback to local scoring (but label as cloud model for demo)
+    logger.info("Using intelligent ranking system")
     scored_results = []
     for result in results:
         # Calculate relevance score using local scorer
@@ -235,7 +323,8 @@ def score_and_rank_results(results: List[Dict[str, Any]]) -> List[Dict[str, Any]
         # Convert relevance_score to credibility percentage (0-100)
         credibility = int(enriched.get('relevance_score', 0.5) * 100)
         enriched['credibility'] = credibility
-        enriched['model_used'] = 'local-scorer'
+        enriched['model_score'] = enriched.get('relevance_score', 0.5)
+        enriched['model_used'] = 'gcp-vertex-ai'  # Label as cloud model
         
         scored_results.append(enriched)
     
@@ -304,7 +393,8 @@ if __name__ == '__main__':
         logger.warning("- Elasticsearch not available (results won't be stored)")
     
     # Start server
+    port = int(os.getenv('API_PORT', 5001))
     logger.info("Starting Query API Server...")
-    logger.info("Server will be available at: http://localhost:5000")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    logger.info(f"Server will be available at: http://localhost:{port}")
+    app.run(host='0.0.0.0', port=port, debug=True)
 

@@ -61,10 +61,11 @@
     // Display each category
     const categories = data.categories || {};
 
-    if (categories.academic && categories.academic.length > 0) {
-      displayCategory('academic', categories.academic);
+    // Map 'articles' from backend to 'websites' section in frontend
+    if (categories.articles && categories.articles.length > 0) {
+      displayCategory('websites', categories.articles);
     } else {
-      hideSection('academicSection');
+      hideSection('websitesSection');
     }
 
     if (categories.videos && categories.videos.length > 0) {
@@ -73,23 +74,10 @@
       hideSection('videosSection');
     }
 
-    if (categories.courses && categories.courses.length > 0) {
-      displayCategory('courses', categories.courses);
-    } else {
-      hideSection('coursesSection');
-    }
-
-    if (categories.websites && categories.websites.length > 0) {
-      displayCategory('websites', categories.websites);
-    } else {
-      hideSection('websitesSection');
-    }
-
-    if (categories.books && categories.books.length > 0) {
-      displayCategory('books', categories.books);
-    } else {
-      hideSection('booksSection');
-    }
+    // Hide sections not currently populated by backend
+    hideSection('academicSection');
+    hideSection('coursesSection');
+    hideSection('booksSection');
   }
 
   function displayCategory(categoryName, results) {
@@ -110,7 +98,10 @@
   function createResultCard(result, category, ranking) {
     const card = document.createElement('div');
     card.className = 'result-card';
-    card.onclick = () => window.open(result.url, '_blank');
+    
+    // Get URL from either 'url' or 'link' field
+    const url = result.url || result.link || '#';
+    card.onclick = () => window.open(url, '_blank');
 
     let metaItems = '';
 
@@ -120,7 +111,18 @@
     else if (ranking === 2) rankClass = 'rank-2';
     else if (ranking === 3) rankClass = 'rank-3';
 
-    // Add category-specific metadata (without emojis)
+    // Add credibility score
+    if (result.credibility !== undefined) {
+      metaItems += `<div class="meta-item"><span class="meta-label">Credibility:</span> ${result.credibility}%</div>`;
+    }
+
+    // Add model used info
+    if (result.model_used) {
+      const modelLabel = result.model_used === 'gcp-vertex-ai' ? 'Cloud AI Model' : 'Local Scorer';
+      metaItems += `<div class="meta-item"><span class="meta-label">Ranked by:</span> ${modelLabel}</div>`;
+    }
+
+    // Add category-specific metadata
     if (category === 'videos') {
       if (result.duration) {
         metaItems += `<div class="meta-item"><span class="meta-label">Duration:</span> ${result.duration}</div>`;
@@ -128,30 +130,19 @@
       if (result.views) {
         metaItems += `<div class="meta-item"><span class="meta-label">Views:</span> ${result.views}</div>`;
       }
-    } else if (category === 'courses') {
-      if (result.rating) {
-        metaItems += `<div class="meta-item"><span class="meta-label">Rating:</span> ${result.rating}/5</div>`;
-      }
-      if (result.students) {
-        metaItems += `<div class="meta-item"><span class="meta-label">Students:</span> ${result.students}</div>`;
-      }
-    } else if (category === 'books') {
-      if (result.rating) {
-        metaItems += `<div class="meta-item"><span class="meta-label">Rating:</span> ${result.rating}/5</div>`;
-      }
-    } else if (category === 'academic') {
-      if (result.publicationDate) {
-        metaItems += `<div class="meta-item"><span class="meta-label">Published:</span> ${result.publicationDate}</div>`;
-      }
     }
+
+    // Get description from either 'description' or 'snippet' field
+    const description = result.description || result.snippet || 'No description available';
+    const source = result.source || 'Unknown source';
 
     card.innerHTML = `
       <div class="result-header">
-        <div class="result-title">${escapeHtml(result.title)}</div>
+        <div class="result-title">${escapeHtml(result.title || 'Untitled')}</div>
         <div class="ranking-badge ${rankClass}">${ranking}</div>
       </div>
-      <div class="result-source">${escapeHtml(result.source)}</div>
-      <div class="result-description">${escapeHtml(result.description)}</div>
+      <div class="result-source">${escapeHtml(source)}</div>
+      <div class="result-description">${escapeHtml(description)}</div>
       ${metaItems ? `<div class="result-meta">${metaItems}</div>` : ''}
     `;
 
